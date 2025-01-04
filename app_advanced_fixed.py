@@ -14,10 +14,12 @@ def fetch_binance_data(symbol, interval="1d", limit=90):
             df = pd.DataFrame(data, columns=["Open Time", "Open", "High", "Low", "Close", "Volume", "Close Time", "Quote Volume", "Trades", "TBBAV", "TBQAV", "Ignore"])
             df["Date"] = pd.to_datetime(df["Open Time"], unit="ms")
             df["Close"] = pd.to_numeric(df["Close"])
-            return df[["Date", "Close"]]
+            return df["Date", "Close"]
         else:
+            st.error(f"Erreur pour {symbol}: {response.json().get('msg', 'Unknown error')}")
             return None
     except Exception as e:
+        st.error(f"Exception pour {symbol}: {str(e)}")
         return None
 
 # Function to calculate indicators
@@ -63,12 +65,19 @@ crypto_list = [
 dataframes = {}
 
 st.write("### Téléchargement des données depuis Binance...")
+missing_data = []
 for crypto in crypto_list:
+    st.write(f"Téléchargement des données pour {crypto}...")
     data = fetch_binance_data(crypto, interval="1d", limit=90)
     if data is not None:
         data.set_index("Date", inplace=True)
         data = calculate_indicators(data)
         dataframes[crypto] = data
+    else:
+        missing_data.append(crypto)
+
+if missing_data:
+    st.warning(f"Données indisponibles pour : {', '.join(missing_data)}.")
 
 if len(dataframes) < 1:
     st.warning("Aucune donnée disponible pour les cryptomonnaies sélectionnées.")
