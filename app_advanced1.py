@@ -86,10 +86,7 @@ def train_ml_model(data):
     data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
     features = data[['RSI', 'MACD', 'SMA_10', 'SMA_20', 'ATR']].dropna()
     target = data['Target']
-
-    # Synchronisation des index
-    target = target.loc[features.index]
-
+    target = target.loc[features.index]  # Synchronize indices
     X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
     model = RandomForestClassifier(random_state=42)
@@ -98,7 +95,6 @@ def train_ml_model(data):
 
     accuracy = accuracy_score(y_test, predictions)
     return model, accuracy
-
 
 # Function to evaluate investment opportunity
 def evaluate_investment(data, sentiment, market_corr):
@@ -137,6 +133,25 @@ def evaluate_investment(data, sentiment, market_corr):
 
     return score
 
+# Recommendations
+def get_recommendations():
+    scores = {}
+    for crypto in crypto_list:
+        try:
+            data = fetch_crypto_data(crypto, days=30)
+            data = calculate_indicators(data)
+            sentiment = fetch_sentiment_data(crypto)
+            market_corr = fetch_market_data()
+            score = evaluate_investment(data, sentiment, market_corr)
+            scores[crypto] = score
+        except Exception as e:
+            scores[crypto] = None
+
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1] if x[1] is not None else -999, reverse=True)
+    best = sorted_scores[:5]
+    worst = sorted_scores[-5:]
+    return best, worst
+
 # Streamlit application
 st.title("Outil Avancé d'Analyse des Cryptomonnaies")
 
@@ -146,6 +161,18 @@ crypto_list = [
     "litecoin", "shiba-inu", "avalanche", "chainlink", "uniswap", "cosmos", "monero", "stellar", "ethereum-classic", "bitcoin-cash",
     "filecoin", "hedera", "aptos", "vechain", "algorand", "quant", "the-graph", "flow", "axie-infinity", "tezos"
 ]
+
+if st.button("Afficher les recommandations"):
+    with st.spinner("Analyse de toutes les cryptomonnaies..."):
+        best, worst = get_recommendations()
+
+        st.subheader("Meilleures opportunités")
+        for crypto, score in best:
+            st.write(f"- {crypto.capitalize()} avec un score de {score}")
+
+        st.subheader("Cryptomonnaies à éviter")
+        for crypto, score in worst:
+            st.write(f"- {crypto.capitalize()} avec un score de {score}")
 
 crypto_symbol = st.selectbox(
     "Sélectionnez une cryptomonnaie :",
