@@ -3,6 +3,9 @@ import numpy as np
 import requests
 import streamlit as st
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 # Function to fetch cryptocurrency data from CoinGecko
 def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
@@ -63,11 +66,40 @@ def calculate_indicators(df):
 
     return df
 
+# Function for sentiment analysis
+def fetch_sentiment_data(crypto_symbol):
+    # Simulated sentiment score (replace with actual API call if available)
+    sentiment_score = np.random.uniform(-1, 1)  # Simulated sentiment score between -1 and 1
+    return sentiment_score
+
+# Function for market correlation
+def fetch_market_data():
+    # Simulated market data (replace with actual API call if available)
+    market_correlation = {
+        "S&P 500": np.random.uniform(-1, 1),
+        "Nasdaq": np.random.uniform(-1, 1)
+    }
+    return market_correlation
+
+# Machine learning model for trend prediction
+def train_ml_model(data):
+    data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
+    features = data[['RSI', 'MACD', 'SMA_10', 'SMA_20', 'ATR']].dropna()
+    target = data['Target'].dropna()
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    accuracy = accuracy_score(y_test, predictions)
+    return model, accuracy
+
 # Function to evaluate investment opportunity
-def evaluate_investment(data):
+def evaluate_investment(data, sentiment, market_corr):
     latest = data.iloc[-1]
     score = 0
-    
+
     # RSI evaluation
     if latest['RSI'] < 30:
         score += 1
@@ -86,10 +118,16 @@ def evaluate_investment(data):
     elif latest['Close'] > latest['BB_upper']:
         score -= 1
 
-    # Stochastic Oscillator evaluation
-    if latest['%K'] < 20:
+    # Sentiment analysis
+    if sentiment > 0.2:
         score += 1
-    elif latest['%K'] > 80:
+    elif sentiment < -0.2:
+        score -= 1
+
+    # Market correlation
+    if market_corr['S&P 500'] > 0.5 or market_corr['Nasdaq'] > 0.5:
+        score += 1
+    elif market_corr['S&P 500'] < -0.5 or market_corr['Nasdaq'] < -0.5:
         score -= 1
 
     return score
@@ -104,38 +142,6 @@ crypto_list = [
     "filecoin", "hedera", "aptos", "vechain", "algorand", "quant", "the-graph", "flow", "axie-infinity", "tezos"
 ]
 
-# Analyze all cryptocurrencies to find recommendations
-def get_recommendations():
-    scores = {}
-    for crypto in crypto_list:
-        try:
-            data = fetch_crypto_data(crypto, days=30)
-            data = calculate_indicators(data)
-            score = evaluate_investment(data)
-            scores[crypto] = score
-        except Exception as e:
-            scores[crypto] = None
-
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1] if x[1] is not None else -999, reverse=True)
-    best = sorted_scores[:5]
-    worst = sorted_scores[-5:]
-    return best, worst
-
-# Display recommendations on the home page
-st.subheader("Recommandations d'investissement")
-if st.button("Afficher les recommandations"):
-    with st.spinner("Analyse de toutes les cryptomonnaies..."):
-        best, worst = get_recommendations()
-
-        st.write("### Meilleures opportunités :")
-        for crypto, score in best:
-            st.write(f"- {crypto.capitalize()} avec un score de {score}")
-
-        st.write("### Cryptomonnaies à éviter :")
-        for crypto, score in worst:
-            st.write(f"- {crypto.capitalize()} avec un score de {score}")
-
-# User selects cryptocurrency and duration
 crypto_symbol = st.selectbox(
     "Sélectionnez une cryptomonnaie :",
     crypto_list
@@ -143,51 +149,30 @@ crypto_symbol = st.selectbox(
 days = st.slider("Sélectionnez la durée (jours) :", min_value=7, max_value=90, value=30)
 
 if st.button("Analyser"):
-    with st.spinner("Récupération des données et analyse en cours..."):
-        # Fetch data
+    with st.spinner("Analyse en cours..."):
         data = fetch_crypto_data(crypto_symbol, days=days)
         data = calculate_indicators(data)
+        sentiment = fetch_sentiment_data(crypto_symbol)
+        market_corr = fetch_market_data()
 
-        # Display data
-        st.subheader("Données Récentes")
-        st.write(data.tail(10))
+        model, accuracy = train_ml_model(data)
 
-        # Plot price and indicators
+        st.write(f"Précision du modèle de machine learning : {accuracy:.2f}")
+
+        score = evaluate_investment(data, sentiment, market_corr)
+
+        st.write(f"Score global pour {crypto_symbol} : {score}")
+        st.write("### Analyse de Sentiment")
+        st.write(f"Score de sentiment : {sentiment:.2f}")
+        st.write("### Corrélation avec le Marché")
+        st.write(market_corr)
+
+        # Plot indicators
         st.subheader("Prix et Indicateurs")
-        st.write("Ce graphique montre les variations de prix, les moyennes mobiles et les bandes de Bollinger.")
         plt.figure(figsize=(10, 6))
         plt.plot(data['Date'], data['Close'], label='Prix', color='blue')
-        plt.plot(data['Date'], data['SMA_10'], label='Moyenne Mobile (SMA 10)', color='orange')
-        plt.plot(data['Date'], data['SMA_20'], label='Moyenne Mobile (SMA 20)', color='red')
+        plt.plot(data['Date'], data['SMA_10'], label='SMA 10', color='orange')
+        plt.plot(data['Date'], data['SMA_20'], label='SMA 20', color='red')
         plt.fill_between(data['Date'], data['BB_upper'], data['BB_lower'], color='gray', alpha=0.2, label='Bandes de Bollinger')
         plt.legend()
-        plt.title(f"Prix et Indicateurs pour {crypto_symbol.capitalize()}")
-        plt.xlabel("Date")
-        plt.ylabel("Prix")
         st.pyplot(plt)
-
-        # Display RSI, MACD, and Stochastic Oscillator
-        st.subheader("RSI, MACD et Oscillateur Stochastique")
-        st.write("Ces graphiques illustrent les tendances de l'indice RSI, le MACD et l'oscillateur stochastique.")
-        fig, ax = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
-
-        # RSI
-        ax[0].plot(data['Date'], data['RSI'], label='RSI', color='green')
-        ax[0].axhline(70, color='red', linestyle='--', label='Surachat')
-        ax[0].axhline(30, color='blue', linestyle='--', label='Survente')
-        ax[0].set_title("RSI")
-        ax[0].legend()
-
-        # MACD
-        ax[1].plot(data['Date'], data['MACD'], label='MACD', color='purple')
-        ax[1].plot(data['Date'], data['Signal_Line'], label='Ligne de Signal', color='orange')
-        ax[1].set_title("MACD")
-        ax[1].legend()
-
-        # Stochastic Oscillator
-        ax[2].plot(data['Date'], data['%K'], label='%K', color='cyan')
-        ax[2].plot(data['Date'], data['%D'], label='%D', color='magenta')
-        ax[2].set_title("Oscillateur Stochastique")
-        ax[2].legend()
-
-        st.pyplot(fig)
