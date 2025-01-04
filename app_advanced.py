@@ -62,33 +62,33 @@ def calculate_indicators(df):
 # Function to evaluate investment opportunity
 def evaluate_investment(data):
     latest = data.iloc[-1]
-    signals = []
-
+    score = 0
+    
     # RSI evaluation
     if latest['RSI'] < 30:
-        signals.append("RSI indique des conditions de survente (potentiel signal d'achat).")
+        score += 1
     elif latest['RSI'] > 70:
-        signals.append("RSI indique des conditions de surachat (potentiel signal de vente).")
+        score -= 1
 
     # MACD evaluation
     if latest['MACD'] > latest['Signal_Line']:
-        signals.append("Le MACD indique un élan haussier.")
+        score += 1
     else:
-        signals.append("Le MACD indique un élan baissier.")
+        score -= 1
 
     # Bollinger Bands evaluation
     if latest['Close'] < latest['BB_lower']:
-        signals.append("Le prix est en dessous de la bande inférieure de Bollinger (potentiel signal d'achat).")
+        score += 1
     elif latest['Close'] > latest['BB_upper']:
-        signals.append("Le prix est au-dessus de la bande supérieure de Bollinger (potentiel signal de vente).")
+        score -= 1
 
     # Stochastic Oscillator evaluation
     if latest['%K'] < 20:
-        signals.append("L'oscillateur stochastique indique des conditions de survente (potentiel signal d'achat).")
+        score += 1
     elif latest['%K'] > 80:
-        signals.append("L'oscillateur stochastique indique des conditions de surachat (potentiel signal de vente).")
+        score -= 1
 
-    return signals
+    return score
 
 # Streamlit application
 st.title("Outil Avancé d'Analyse des Cryptomonnaies")
@@ -99,6 +99,37 @@ crypto_list = [
     "litecoin", "shiba-inu", "avalanche", "chainlink", "uniswap", "cosmos", "monero", "stellar", "ethereum-classic", "bitcoin-cash",
     "filecoin", "hedera", "aptos", "vechain", "algorand", "quant", "the-graph", "flow", "axie-infinity", "tezos"
 ]
+
+# Analyze all cryptocurrencies to find recommendations
+def get_recommendations():
+    scores = {}
+    for crypto in crypto_list:
+        try:
+            data = fetch_crypto_data(crypto, days=30)
+            data = calculate_indicators(data)
+            score = evaluate_investment(data)
+            scores[crypto] = score
+        except Exception as e:
+            scores[crypto] = None
+
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1] if x[1] is not None else -999, reverse=True)
+    best = sorted_scores[:5]
+    worst = sorted_scores[-5:]
+    return best, worst
+
+# Display recommendations on the home page
+st.subheader("Recommandations d'investissement")
+if st.button("Afficher les recommandations"):
+    with st.spinner("Analyse de toutes les cryptomonnaies..."):
+        best, worst = get_recommendations()
+
+        st.write("### Meilleures opportunités :")
+        for crypto, score in best:
+            st.write(f"- {crypto.capitalize()} avec un score de {score}")
+
+        st.write("### Cryptomonnaies à éviter :")
+        for crypto, score in worst:
+            st.write(f"- {crypto.capitalize()} avec un score de {score}")
 
 # User selects cryptocurrency and duration
 crypto_symbol = st.selectbox(
@@ -144,25 +175,3 @@ if st.button("Analyser"):
         ax[0].legend()
 
         # MACD
-        ax[1].plot(data['Date'], data['MACD'], label='MACD', color='purple')
-        ax[1].plot(data['Date'], data['Signal_Line'], label='Ligne de Signal', color='orange')
-        ax[1].set_title("MACD")
-        ax[1].legend()
-
-        # Stochastic Oscillator
-        ax[2].plot(data['Date'], data['%K'], label='%K', color='cyan')
-        ax[2].plot(data['Date'], data['%D'], label='%D', color='magenta')
-        ax[2].set_title("Oscillateur Stochastique")
-        ax[2].legend()
-
-        st.pyplot(fig)
-
-        # Evaluate investment opportunity
-        st.subheader("Analyse des Opportunités d'Investissement")
-        st.write("Cette section évalue les opportunités d'investissement en fonction des indicateurs actuels.")
-        signals = evaluate_investment(data)
-        for signal in signals:
-            st.write(f"- {signal}")
-
-st.sidebar.title("À propos")
-st.sidebar.info("Cet outil analyse les données des cryptomonnaies en utilisant des indicateurs avancés pour détecter les tendances du marché et évaluer les opportunités d'investissement.")
