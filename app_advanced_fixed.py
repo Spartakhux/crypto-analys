@@ -38,7 +38,7 @@ for crypto in crypto_list:
         dataframes[crypto] = data["Close"]
 
 if len(dataframes) < 2:
-    st.warning("Pas assez de données disponibles pour effectuer une analyse de corrélation.")
+    st.warning("Pas assez de données disponibles pour afficher les courbes superposées.")
 else:
     # Combine all data into one DataFrame
     combined_data = pd.concat(dataframes, axis=1)
@@ -46,20 +46,17 @@ else:
     # Ajuster dynamiquement les noms des colonnes
     combined_data.columns = [crypto for crypto in crypto_list if crypto in dataframes]
 
-    # Interpolation des données manquantes
-    combined_data = combined_data.interpolate(method='linear', axis=0)
+    # Normaliser les données pour chaque cryptomonnaie (échelle relative)
+    normalized_data = combined_data.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
 
-    # Compute the correlation matrix
-    correlation_matrix = combined_data.corr()
+    # Plot the normalized data
+    st.write("### Courbes de Prix Normalisées (Superposées)")
+    fig, ax = plt.subplots(figsize=(12, 8))
+    for crypto in normalized_data.columns:
+        ax.plot(normalized_data.index, normalized_data[crypto], label=crypto)
 
-    st.write("### Matrice de Corrélation des Cryptomonnaies")
-    st.dataframe(correlation_matrix)
-
-    # Plot the correlation matrix
-    st.write("### Visualisation de la Corrélation")
-    fig, ax = plt.subplots(figsize=(10, 8))
-    cax = ax.matshow(correlation_matrix, cmap="coolwarm")
-    plt.xticks(range(len(correlation_matrix.columns)), correlation_matrix.columns, rotation=90)
-    plt.yticks(range(len(correlation_matrix.columns)), correlation_matrix.columns)
-    plt.colorbar(cax)
+    ax.set_title("Courbes de Prix Normalisées (Superposées)")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Prix Normalisé")
+    ax.legend()
     st.pyplot(fig)
