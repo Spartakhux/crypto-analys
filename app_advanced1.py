@@ -27,7 +27,6 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
     df['Low'] = [l[1] for l in data['prices']]   # Approximation for low
     return df
 
-
 # Function to calculate advanced indicators
 def calculate_indicators(df):
     # SMA and EMA
@@ -155,7 +154,6 @@ def get_recommendations():
     best = sorted_scores[:5]
     worst = sorted_scores[-5:]
     return best, worst
-
 
 # Streamlit application
 st.title("Outil Avancé d'Analyse des Cryptomonnaies")
