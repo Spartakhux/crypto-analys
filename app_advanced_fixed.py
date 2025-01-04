@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import requests
 import streamlit as st
-import matplotlib.pyplot as plt
 
 # Function to fetch cryptocurrency data from CoinGecko
 def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
@@ -17,68 +16,64 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
         # Convert to DataFrame
         df = pd.DataFrame(data['prices'], columns=["Date", "Close"])
         df['Date'] = pd.to_datetime(df['Date'], unit='ms')
-        df.set_index("Date", inplace=True)
         return df
     except Exception as e:
         return None
 
-# Function to normalize data
-def normalize_data(df):
-    return df.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
+# Function to calculate indicators
+def calculate_indicators(df):
+    df['SMA_10'] = df['Close'].rolling(window=10).mean()
+    df['SMA_50'] = df['Close'].rolling(window=50).mean()
+    df['RSI'] = calculate_rsi(df['Close'])
+    return df
 
-# Function to plot normalized data
-def plot_normalized_data(normalized_data, title):
-    fig, ax = plt.subplots(figsize=(12, 8))
-    for crypto in normalized_data.columns:
-        ax.plot(normalized_data.index, normalized_data[crypto], label=crypto)
+# Function to calculate RSI
+def calculate_rsi(series, window=14):
+    delta = series.diff()
+    gain = delta.where(delta > 0, 0).rolling(window=window).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=window).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-    ax.set_title(title)
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Prix Normalisé")
-    ax.legend()
-    st.pyplot(fig)
+# Function to provide recommendations
+def provide_recommendations(dataframes):
+    recommendations = {}
+    for crypto, df in dataframes.items():
+        if df['RSI'].iloc[-1] < 30:
+            recommendations[crypto] = "Strong Buy"
+        elif df['RSI'].iloc[-1] > 70:
+            recommendations[crypto] = "Strong Sell"
+        else:
+            recommendations[crypto] = "Hold"
+    return recommendations
 
 # Streamlit application
-st.title("Analyse Avancée des Cryptomonnaies")
+st.title("Recommandations Avancées des Cryptomonnaies")
 
 crypto_list = [
-    "bitcoin", "ethereum", "solana", "link", "cardano", "dot", "cosmos", "aave", "near"
+    "bitcoin", "ethereum", "solana", "cardano", "dot", "cosmos", "aave", "near"
 ]
+dataframes = {}
 
-# Durations for analysis
-durations = {
-    "5 ans": 1825,
-    "1 an": 365,
-    "1 mois": 30
-}
+st.write("### Téléchargement des données...")
+for crypto in crypto_list:
+    data = fetch_crypto_data(crypto, days=90)
+    if data is not None:
+        data.set_index("Date", inplace=True)
+        data = calculate_indicators(data)
+        dataframes[crypto] = data
 
-for duration_name, days in durations.items():
-    st.write(f"### Analyse sur {duration_name}")
-    dataframes = {}
-    missing_cryptos = []
+if len(dataframes) < 1:
+    st.warning("Aucune donnée disponible pour les cryptomonnaies sélectionnées.")
+else:
+    recommendations = provide_recommendations(dataframes)
 
-    for crypto in crypto_list:
-        data = fetch_crypto_data(crypto, days=days)
-        if data is not None:
-            dataframes[crypto] = data["Close"]
-        else:
-            missing_cryptos.append(crypto)
+    st.write("### Recommandations d'Investissement")
+    for crypto, recommendation in recommendations.items():
+        st.write(f"{crypto.capitalize()}: {recommendation}")
 
-    if missing_cryptos:
-        st.warning(f"Les données ne sont pas disponibles pour : {', '.join(missing_cryptos)}.")
-
-    if len(dataframes) < 2:
-        st.warning(f"Pas assez de données disponibles pour afficher les courbes pour {duration_name}.")
-    else:
-        # Combine all data into one DataFrame
-        combined_data = pd.concat(dataframes.values(), axis=1)
-        combined_data.columns = dataframes.keys()
-
-        # Interpolate missing data and sort by date
-        combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
-
-        # Normalize the data
-        normalized_data = normalize_data(combined_data)
-
-        # Plot the data
-        plot_normalized_data(normalized_data, f"Courbes de Prix Normalisées ({duration_name})")
+    st.write("### Données des Indicateurs Techniques")
+    for crypto, df in dataframes.items():
+        st.write(f"#### {crypto.capitalize()}")
+        st.line_chart(df[['Close', 'SMA_10', 'SMA_50']])
