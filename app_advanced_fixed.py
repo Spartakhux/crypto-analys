@@ -1,25 +1,21 @@
 import pandas as pd
 import numpy as np
-import requests
+import yfinance as yf
 import streamlit as st
 
-# Function to fetch cryptocurrency data from Binance API
-def fetch_binance_data(symbol, interval="1d", limit=90):
-    url = f"https://api.binance.com/api/v3/klines"
-    params = {"symbol": symbol.upper(), "interval": interval, "limit": limit}
-    response = requests.get(url, params=params)
+# Function to fetch cryptocurrency data from Yahoo Finance
+def fetch_yfinance_data(symbol, period="90d", interval="1d"):
     try:
-        data = response.json()
-        if response.status_code == 200 and len(data) > 0:
-            df = pd.DataFrame(data, columns=["Open Time", "Open", "High", "Low", "Close", "Volume", "Close Time", "Quote Volume", "Trades", "TBBAV", "TBQAV", "Ignore"])
-            df["Date"] = pd.to_datetime(df["Open Time"], unit="ms")
-            df["Close"] = pd.to_numeric(df["Close"])
-            return df["Date", "Close"]
+        data = yf.download(tickers=symbol, period=period, interval=interval)
+        if not data.empty:
+            data.reset_index(inplace=True)
+            data = data.rename(columns={"Adj Close": "Close"})
+            return data[["Date", "Close"]]
         else:
-            st.error(f"Erreur pour {symbol}: {response.json().get('msg', 'Unknown error')}")
+            st.warning(f"Aucune donnée pour {symbol} sur Yahoo Finance.")
             return None
     except Exception as e:
-        st.error(f"Exception pour {symbol}: {str(e)}")
+        st.error(f"Erreur pour {symbol} : {str(e)}")
         return None
 
 # Function to calculate indicators
@@ -57,18 +53,18 @@ def provide_recommendations(dataframes):
     return recommendations
 
 # Streamlit application
-st.title("Recommandations Avancées des Cryptomonnaies (Binance API)")
+st.title("Recommandations Avancées des Cryptomonnaies (Yahoo Finance)")
 
 crypto_list = [
-    "BTCUSDT", "ETHUSDT", "SOLUSDT", "ADAUSDT", "DOTUSDT", "ATOMUSDT", "AAVEUSDT", "NEARUSDT"
+    "BTC-USD", "ETH-USD", "SOL-USD", "ADA-USD", "DOT-USD", "ATOM-USD", "AAVE-USD", "NEAR-USD"
 ]
 dataframes = {}
 
-st.write("### Téléchargement des données depuis Binance...")
+st.write("### Téléchargement des données depuis Yahoo Finance...")
 missing_data = []
 for crypto in crypto_list:
     st.write(f"Téléchargement des données pour {crypto}...")
-    data = fetch_binance_data(crypto, interval="1d", limit=90)
+    data = fetch_yfinance_data(crypto, period="90d")
     if data is not None:
         data.set_index("Date", inplace=True)
         data = calculate_indicators(data)
@@ -86,9 +82,9 @@ else:
 
     st.write("### Recommandations d'Investissement")
     for crypto, recommendation in recommendations.items():
-        st.write(f"{crypto[:-4]}: {recommendation}")
+        st.write(f"{crypto.split('-')[0]}: {recommendation}")
 
     st.write("### Données des Indicateurs Techniques")
     for crypto, df in dataframes.items():
-        st.write(f"#### {crypto[:-4]}")
+        st.write(f"#### {crypto.split('-')[0]}")
         st.line_chart(df[['Close', 'SMA_10', 'SMA_50', 'EMA_10', 'EMA_50']])
