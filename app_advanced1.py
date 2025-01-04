@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import requests
@@ -11,6 +10,10 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
     params = {"vs_currency": currency, "days": days}
     response = requests.get(url, params=params)
     data = response.json()
+
+    # Vérification de la présence des données
+    if 'prices' not in data or not data['prices']:
+        raise KeyError(f"Aucune donnée de prix disponible pour {crypto_symbol}.")
 
     # Convert to DataFrame
     df = pd.DataFrame(data['prices'], columns=["Date", "Close"])
