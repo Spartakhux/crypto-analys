@@ -46,6 +46,9 @@ else:
     # Ajuster dynamiquement les noms des colonnes
     combined_data.columns = [crypto for crypto in crypto_list if crypto in dataframes]
 
+    # Interpolation des données manquantes et tri par date
+    combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
+
     # Normaliser les données pour chaque cryptomonnaie (échelle relative)
     normalized_data = combined_data.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
 
