@@ -16,7 +16,8 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
 
     # Vérification de la présence des données
     if 'prices' not in data or not data['prices']:
-        raise KeyError(f"Aucune donnée de prix disponible pour {crypto_symbol}.")
+        st.warning(f"Aucune donnée disponible pour {crypto_symbol}. Elle sera ignorée.")
+        return None
 
     # Convert to DataFrame
     df = pd.DataFrame(data['prices'], columns=["Date", "Close"])
@@ -25,6 +26,7 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
     df['High'] = [h[1] for h in data['prices']]  # Approximation for high
     df['Low'] = [l[1] for l in data['prices']]   # Approximation for low
     return df
+
 
 # Function to calculate advanced indicators
 def calculate_indicators(df):
@@ -139,6 +141,8 @@ def get_recommendations():
     for crypto in crypto_list:
         try:
             data = fetch_crypto_data(crypto, days=30)
+            if data is None:
+                continue  # Ignore les cryptos sans données
             data = calculate_indicators(data)
             sentiment = fetch_sentiment_data(crypto)
             market_corr = fetch_market_data()
@@ -151,6 +155,7 @@ def get_recommendations():
     best = sorted_scores[:5]
     worst = sorted_scores[-5:]
     return best, worst
+
 
 # Streamlit application
 st.title("Outil Avancé d'Analyse des Cryptomonnaies")
