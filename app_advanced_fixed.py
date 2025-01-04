@@ -42,7 +42,9 @@ if len(dataframes) < 2:
 else:
     # Combine all data into one DataFrame
     combined_data = pd.concat(dataframes, axis=1)
-    combined_data.columns = crypto_list
+
+    # Ajuster dynamiquement les noms des colonnes
+    combined_data.columns = [crypto for crypto in crypto_list if crypto in dataframes]
 
     # Interpolation des données manquantes
     combined_data = combined_data.interpolate(method='linear', axis=0)
