@@ -141,7 +141,7 @@ def get_recommendations():
         try:
             data = fetch_crypto_data(crypto, days=30)
             if data is None:
-                continue  # Ignore les cryptos sans données
+                continue  # Ignore cryptos without data
             data = calculate_indicators(data)
             sentiment = fetch_sentiment_data(crypto)
             market_corr = fetch_market_data()
@@ -186,28 +186,26 @@ days = st.slider("Sélectionnez la durée (jours) :", min_value=7, max_value=90,
 if st.button("Analyser"):
     with st.spinner("Analyse en cours..."):
         data = fetch_crypto_data(crypto_symbol, days=days)
-        data = calculate_indicators(data)
-        sentiment = fetch_sentiment_data(crypto_symbol)
-        market_corr = fetch_market_data()
+        if data is not None:
+            data = calculate_indicators(data)
+            sentiment = fetch_sentiment_data(crypto_symbol)
+            market_corr = fetch_market_data()
 
-        model, accuracy = train_ml_model(data)
+            model, accuracy = train_ml_model(data)
 
-        st.write(f"Précision du modèle de machine learning : {accuracy:.2f}")
+            st.write(f"Précision du modèle de machine learning : {accuracy:.2f}")
 
-        score = evaluate_investment(data, sentiment, market_corr)
+            score = evaluate_investment(data, sentiment, market_corr)
 
-        st.write(f"Score global pour {crypto_symbol} : {score}")
-        st.write("### Analyse de Sentiment")
-        st.write(f"Score de sentiment : {sentiment:.2f}")
-        st.write("### Corrélation avec le Marché")
-        st.write(market_corr)
+            st.write(f"Score global pour {crypto_symbol} : {score}")
+            st.write("### Analyse de Sentiment")
+            st.write(f"Score de sentiment : {sentiment:.2f}")
+            st.write("### Corrélation avec le Marché")
+            st.write(market_corr)
 
-        # Plot indicators
-        st.subheader("Prix et Indicateurs")
-        plt.figure(figsize=(10, 6))
-        plt.plot(data['Date'], data['Close'], label='Prix', color='blue')
-        plt.plot(data['Date'], data['SMA_10'], label='SMA 10', color='orange')
-        plt.plot(data['Date'], data['SMA_20'], label='SMA 20', color='red')
-        plt.fill_between(data['Date'], data['BB_upper'], data['BB_lower'], color='gray', alpha=0.2, label='Bandes de Bollinger')
-        plt.legend()
-        st.pyplot(plt)
+            # Plot indicators
+            st.subheader("Prix et Indicateurs")
+            plt.figure(figsize=(10, 6))
+            plt.plot(data['Date'], data['Close'], label='Prix', color='blue')
+            plt.plot(data['Date'], data['SMA_10'], label='SMA 10', color='orange')
+            plt.plot(data['Date'], data['SMA_20'], label
