@@ -85,7 +85,11 @@ def fetch_market_data():
 def train_ml_model(data):
     data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
     features = data[['RSI', 'MACD', 'SMA_10', 'SMA_20', 'ATR']].dropna()
-    target = data['Target'].dropna()
+    target = data['Target']
+
+    # Synchronisation des index
+    target = target.loc[features.index]
+
     X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
     model = RandomForestClassifier(random_state=42)
@@ -94,6 +98,7 @@ def train_ml_model(data):
 
     accuracy = accuracy_score(y_test, predictions)
     return model, accuracy
+
 
 # Function to evaluate investment opportunity
 def evaluate_investment(data, sentiment, market_corr):
