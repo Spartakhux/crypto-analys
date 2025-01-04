@@ -17,6 +17,7 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
         # Convert to DataFrame
         df = pd.DataFrame(data['prices'], columns=["Date", "Close"])
         df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+        df.set_index("Date", inplace=True)
         return df
     except Exception as e:
         return None
@@ -54,12 +55,17 @@ durations = {
 for duration_name, days in durations.items():
     st.write(f"### Analyse sur {duration_name}")
     dataframes = {}
+    missing_cryptos = []
 
     for crypto in crypto_list:
         data = fetch_crypto_data(crypto, days=days)
         if data is not None:
-            data.set_index("Date", inplace=True)
             dataframes[crypto] = data["Close"]
+        else:
+            missing_cryptos.append(crypto)
+
+    if missing_cryptos:
+        st.warning(f"Les données ne sont pas disponibles pour : {', '.join(missing_cryptos)}.")
 
     if len(dataframes) < 2:
         st.warning(f"Pas assez de données disponibles pour afficher les courbes pour {duration_name}.")
