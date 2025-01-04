@@ -24,6 +24,8 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
 def calculate_indicators(df):
     df['SMA_10'] = df['Close'].rolling(window=10).mean()
     df['SMA_50'] = df['Close'].rolling(window=50).mean()
+    df['EMA_10'] = df['Close'].ewm(span=10, adjust=False).mean()
+    df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
     df['RSI'] = calculate_rsi(df['Close'])
     return df
 
@@ -44,6 +46,10 @@ def provide_recommendations(dataframes):
             recommendations[crypto] = "Strong Buy"
         elif df['RSI'].iloc[-1] > 70:
             recommendations[crypto] = "Strong Sell"
+        elif df['EMA_10'].iloc[-1] > df['EMA_50'].iloc[-1]:
+            recommendations[crypto] = "Buy"
+        elif df['EMA_10'].iloc[-1] < df['EMA_50'].iloc[-1]:
+            recommendations[crypto] = "Sell"
         else:
             recommendations[crypto] = "Hold"
     return recommendations
@@ -76,4 +82,4 @@ else:
     st.write("### Données des Indicateurs Techniques")
     for crypto, df in dataframes.items():
         st.write(f"#### {crypto.capitalize()}")
-        st.line_chart(df[['Close', 'SMA_10', 'SMA_50']])
+        st.line_chart(df[['Close', 'SMA_10', 'SMA_50', 'EMA_10', 'EMA_50']])
