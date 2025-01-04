@@ -89,7 +89,7 @@ def provide_advanced_recommendations(dataframes, market_data):
 st.title("Recommandations Avancées des Cryptomonnaies")
 
 crypto_list = [
-    "bitcoin", "ethereum", "solana", "cardano", "dot", "cosmos", "aave", "near"
+    "bitcoin", "ethereum", "solana", "cardano", "polkadot", "xrp ledger", "aave", "chainlink"
 ]
 dataframes = {}
 market_data = {}
