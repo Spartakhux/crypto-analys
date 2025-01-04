@@ -21,6 +21,22 @@ def fetch_crypto_data(crypto_symbol, currency="usd", days=90):
     df['Date'] = pd.to_datetime(df['Date'], unit='ms')
     return df
 
+# Function to normalize data
+def normalize_data(df):
+    return df.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
+
+# Function to plot normalized data
+def plot_normalized_data(normalized_data, title):
+    fig, ax = plt.subplots(figsize=(12, 8))
+    for crypto in normalized_data.columns:
+        ax.plot(normalized_data.index, normalized_data[crypto], label=crypto)
+
+    ax.set_title(title)
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Prix Normalisé")
+    ax.legend()
+    st.pyplot(fig)
+
 # Streamlit application
 st.title("Analyse de Corrélation des Cryptomonnaies")
 
@@ -30,9 +46,16 @@ crypto_list = [
 
 dataframes = {}
 
+# Durations for analysis
+durations = {
+    "5 ans": 1825,
+    "1 an": 365,
+    "1 mois": 30
+}
+
 st.write("### Téléchargement des données en cours...")
 for crypto in crypto_list:
-    data = fetch_crypto_data(crypto, days=90)
+    data = fetch_crypto_data(crypto, currency="usd", days=max(durations.values()))
     if data is not None:
         data.set_index("Date", inplace=True)
         dataframes[crypto] = data["Close"]
@@ -40,26 +63,20 @@ for crypto in crypto_list:
 if len(dataframes) < 2:
     st.warning("Pas assez de données disponibles pour afficher les courbes superposées.")
 else:
-    # Combine all data into one DataFrame
-    combined_data = pd.concat(dataframes, axis=1)
+    for duration_name, days in durations.items():
+        # Filter data for the given duration
+        filtered_data = {crypto: df.last(days) for crypto, df in dataframes.items() if not df.empty}
 
-    # Ajuster dynamiquement les noms des colonnes
-    combined_data.columns = [crypto for crypto in crypto_list if crypto in dataframes]
+        # Combine all data into one DataFrame
+        combined_data = pd.concat(filtered_data, axis=1)
+        combined_data.columns = [crypto for crypto in crypto_list if crypto in filtered_data]
 
-    # Interpolation des données manquantes et tri par date
-    combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
+        # Interpolate missing data and sort by date
+        combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
 
-    # Normaliser les données pour chaque cryptomonnaie (échelle relative)
-    normalized_data = combined_data.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
+        # Normalize the data
+        normalized_data = normalize_data(combined_data)
 
-    # Plot the normalized data
-    st.write("### Courbes de Prix Normalisées (Superposées)")
-    fig, ax = plt.subplots(figsize=(12, 8))
-    for crypto in normalized_data.columns:
-        ax.plot(normalized_data.index, normalized_data[crypto], label=crypto)
-
-    ax.set_title("Courbes de Prix Normalisées (Superposées)")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Prix Normalisé")
-    ax.legend()
-    st.pyplot(fig)
+        # Plot the data
+        st.write(f"### Courbes de Prix Normalisées - {duration_name}")
+        plot_normalized_data(normalized_data, f"Courbes de Prix Normalisées ({duration_name})")
