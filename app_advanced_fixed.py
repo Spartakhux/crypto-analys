@@ -96,7 +96,7 @@ market_data = {}
 
 st.write("### Téléchargement des données...")
 for crypto in crypto_list:
-    data = fetch_crypto_data(crypto, days=90)
+    data = fetch_crypto_data(crypto, days=365)
     market_cap, circulating_supply, max_supply = fetch_market_data(crypto)
 
     if data is not None and market_cap is not None:
