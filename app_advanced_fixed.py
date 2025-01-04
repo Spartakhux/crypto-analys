@@ -4,7 +4,7 @@ import yfinance as yf
 import streamlit as st
 
 # Function to fetch cryptocurrency data from Yahoo Finance
-def fetch_yfinance_data(symbol, period="90d", interval="1d"):
+def fetch_yfinance_data(symbol, period="30d", interval="1d"):
     try:
         data = yf.download(tickers=symbol, period=period, interval=interval)
         if not data.empty:
@@ -64,7 +64,7 @@ st.write("### Téléchargement des données depuis Yahoo Finance...")
 missing_data = []
 for crypto in crypto_list:
     st.write(f"Téléchargement des données pour {crypto}...")
-    data = fetch_yfinance_data(crypto, period="90d")
+    data = fetch_yfinance_data(crypto, period="30d", interval="1d")
     if data is not None:
         data.set_index("Date", inplace=True)
         data = calculate_indicators(data)
