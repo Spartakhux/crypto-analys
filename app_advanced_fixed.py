@@ -26,12 +26,23 @@ def normalize_data(df):
     return df.apply(lambda x: (x - x.min()) / (x.max() - x.min()), axis=0)
 
 # Function to plot normalized data
-def plot_normalized_data(normalized_data, title):
+def plot_normalized_data(dataframes, duration_name):
+    combined_data = pd.concat(dataframes.values(), axis=1)
+    combined_data.columns = dataframes.keys()
+
+    # Interpolate missing data and sort by date
+    combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
+
+    # Normalize the data
+    normalized_data = normalize_data(combined_data)
+
+    # Plot the data
+    st.write(f"### Courbes de Prix Normalisées - {duration_name}")
     fig, ax = plt.subplots(figsize=(12, 8))
     for crypto in normalized_data.columns:
         ax.plot(normalized_data.index, normalized_data[crypto], label=crypto)
 
-    ax.set_title(title)
+    ax.set_title(f"Courbes de Prix Normalisées ({duration_name})")
     ax.set_xlabel("Date")
     ax.set_ylabel("Prix Normalisé")
     ax.legend()
@@ -44,8 +55,6 @@ crypto_list = [
     "bitcoin", "ethereum", "solana", "link", "cardano", "dot", "cosmos", "aave", "near"
 ]
 
-dataframes = {}
-
 # Durations for analysis
 durations = {
     "5 ans": 1825,
@@ -53,30 +62,17 @@ durations = {
     "1 mois": 30
 }
 
-st.write("### Téléchargement des données en cours...")
-for crypto in crypto_list:
-    data = fetch_crypto_data(crypto, currency="usd", days=max(durations.values()))
-    if data is not None:
-        data.set_index("Date", inplace=True)
-        dataframes[crypto] = data["Close"]
+for duration_name, days in durations.items():
+    st.write(f"### Analyse sur {duration_name}")
+    dataframes = {}
 
-if len(dataframes) < 2:
-    st.warning("Pas assez de données disponibles pour afficher les courbes superposées.")
-else:
-    for duration_name, days in durations.items():
-        # Filter data for the given duration
-        filtered_data = {crypto: df.last(days) for crypto, df in dataframes.items() if not df.empty}
+    for crypto in crypto_list:
+        data = fetch_crypto_data(crypto, days=days)
+        if data is not None:
+            data.set_index("Date", inplace=True)
+            dataframes[crypto] = data["Close"]
 
-        # Combine all data into one DataFrame
-        combined_data = pd.concat(filtered_data, axis=1)
-        combined_data.columns = [crypto for crypto in crypto_list if crypto in filtered_data]
-
-        # Interpolate missing data and sort by date
-        combined_data = combined_data.sort_index().interpolate(method='linear', axis=0)
-
-        # Normalize the data
-        normalized_data = normalize_data(combined_data)
-
-        # Plot the data
-        st.write(f"### Courbes de Prix Normalisées - {duration_name}")
-        plot_normalized_data(normalized_data, f"Courbes de Prix Normalisées ({duration_name})")
+    if len(dataframes) < 2:
+        st.warning(f"Pas assez de données disponibles pour afficher les courbes pour {duration_name}.")
+    else:
+        plot_normalized_data(dataframes, duration_name)
