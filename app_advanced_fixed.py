@@ -44,6 +44,9 @@ else:
     combined_data = pd.concat(dataframes, axis=1)
     combined_data.columns = crypto_list
 
+    # Interpolation des données manquantes
+    combined_data = combined_data.interpolate(method='linear', axis=0)
+
     # Compute the correlation matrix
     correlation_matrix = combined_data.corr()
 
