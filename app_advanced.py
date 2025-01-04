@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import requests
@@ -59,6 +58,37 @@ def calculate_indicators(df):
     df['%D'] = df['%K'].rolling(window=3).mean()
 
     return df
+
+# Function to evaluate investment opportunity
+def evaluate_investment(data):
+    latest = data.iloc[-1]
+    signals = []
+
+    # RSI evaluation
+    if latest['RSI'] < 30:
+        signals.append("RSI indicates oversold conditions (potential buy signal).")
+    elif latest['RSI'] > 70:
+        signals.append("RSI indicates overbought conditions (potential sell signal).")
+
+    # MACD evaluation
+    if latest['MACD'] > latest['Signal_Line']:
+        signals.append("MACD indicates bullish momentum.")
+    else:
+        signals.append("MACD indicates bearish momentum.")
+
+    # Bollinger Bands evaluation
+    if latest['Close'] < latest['BB_lower']:
+        signals.append("Price is below the lower Bollinger Band (potential buy signal).")
+    elif latest['Close'] > latest['BB_upper']:
+        signals.append("Price is above the upper Bollinger Band (potential sell signal).")
+
+    # Stochastic Oscillator evaluation
+    if latest['%K'] < 20:
+        signals.append("Stochastic Oscillator indicates oversold conditions (potential buy signal).")
+    elif latest['%K'] > 80:
+        signals.append("Stochastic Oscillator indicates overbought conditions (potential sell signal).")
+
+    return signals
 
 # Streamlit application
 st.title("Advanced Cryptocurrency Analysis Tool")
@@ -125,5 +155,11 @@ if st.button("Analyze"):
 
         st.pyplot(fig)
 
+        # Evaluate investment opportunity
+        st.subheader("Investment Opportunity Analysis")
+        signals = evaluate_investment(data)
+        for signal in signals:
+            st.write(f"- {signal}")
+
 st.sidebar.title("About")
-st.sidebar.info("This tool analyzes cryptocurrency data using multiple advanced indicators to detect potential market trends.")
+st.sidebar.info("This tool analyzes cryptocurrency data using multiple advanced indicators to detect potential market trends and evaluate investment opportunities.")
