@@ -66,32 +66,32 @@ def evaluate_investment(data):
 
     # RSI evaluation
     if latest['RSI'] < 30:
-        signals.append("RSI indicates oversold conditions (potential buy signal).")
+        signals.append("RSI indique des conditions de survente (potentiel signal d'achat).")
     elif latest['RSI'] > 70:
-        signals.append("RSI indicates overbought conditions (potential sell signal).")
+        signals.append("RSI indique des conditions de surachat (potentiel signal de vente).")
 
     # MACD evaluation
     if latest['MACD'] > latest['Signal_Line']:
-        signals.append("MACD indicates bullish momentum.")
+        signals.append("Le MACD indique un élan haussier.")
     else:
-        signals.append("MACD indicates bearish momentum.")
+        signals.append("Le MACD indique un élan baissier.")
 
     # Bollinger Bands evaluation
     if latest['Close'] < latest['BB_lower']:
-        signals.append("Price is below the lower Bollinger Band (potential buy signal).")
+        signals.append("Le prix est en dessous de la bande inférieure de Bollinger (potentiel signal d'achat).")
     elif latest['Close'] > latest['BB_upper']:
-        signals.append("Price is above the upper Bollinger Band (potential sell signal).")
+        signals.append("Le prix est au-dessus de la bande supérieure de Bollinger (potentiel signal de vente).")
 
     # Stochastic Oscillator evaluation
     if latest['%K'] < 20:
-        signals.append("Stochastic Oscillator indicates oversold conditions (potential buy signal).")
+        signals.append("L'oscillateur stochastique indique des conditions de survente (potentiel signal d'achat).")
     elif latest['%K'] > 80:
-        signals.append("Stochastic Oscillator indicates overbought conditions (potential sell signal).")
+        signals.append("L'oscillateur stochastique indique des conditions de surachat (potentiel signal de vente).")
 
     return signals
 
 # Streamlit application
-st.title("Advanced Cryptocurrency Analysis Tool")
+st.title("Outil Avancé d'Analyse des Cryptomonnaies")
 
 # List of top 30 cryptocurrencies by market cap
 crypto_list = [
@@ -102,64 +102,67 @@ crypto_list = [
 
 # User selects cryptocurrency and duration
 crypto_symbol = st.selectbox(
-    "Select Cryptocurrency:",
+    "Sélectionnez une cryptomonnaie :",
     crypto_list
 )
-days = st.slider("Select duration (days):", min_value=7, max_value=90, value=30)
+days = st.slider("Sélectionnez la durée (jours) :", min_value=7, max_value=90, value=30)
 
-if st.button("Analyze"):
-    with st.spinner("Fetching data and performing analysis..."):
+if st.button("Analyser"):
+    with st.spinner("Récupération des données et analyse en cours..."):
         # Fetch data
         data = fetch_crypto_data(crypto_symbol, days=days)
         data = calculate_indicators(data)
 
         # Display data
-        st.subheader("Recent Data")
+        st.subheader("Données Récentes")
         st.write(data.tail(10))
 
         # Plot price and indicators
-        st.subheader("Price and Indicators")
+        st.subheader("Prix et Indicateurs")
+        st.write("Ce graphique montre les variations de prix, les moyennes mobiles et les bandes de Bollinger.")
         plt.figure(figsize=(10, 6))
-        plt.plot(data['Date'], data['Close'], label='Price', color='blue')
-        plt.plot(data['Date'], data['SMA_10'], label='SMA 10', color='orange')
-        plt.plot(data['Date'], data['SMA_20'], label='SMA 20', color='red')
-        plt.fill_between(data['Date'], data['BB_upper'], data['BB_lower'], color='gray', alpha=0.2, label='Bollinger Bands')
+        plt.plot(data['Date'], data['Close'], label='Prix', color='blue')
+        plt.plot(data['Date'], data['SMA_10'], label='Moyenne Mobile (SMA 10)', color='orange')
+        plt.plot(data['Date'], data['SMA_20'], label='Moyenne Mobile (SMA 20)', color='red')
+        plt.fill_between(data['Date'], data['BB_upper'], data['BB_lower'], color='gray', alpha=0.2, label='Bandes de Bollinger')
         plt.legend()
-        plt.title(f"Price and Indicators for {crypto_symbol.capitalize()}")
+        plt.title(f"Prix et Indicateurs pour {crypto_symbol.capitalize()}")
         plt.xlabel("Date")
-        plt.ylabel("Price")
+        plt.ylabel("Prix")
         st.pyplot(plt)
 
         # Display RSI, MACD, and Stochastic Oscillator
-        st.subheader("RSI, MACD, and Stochastic Oscillator")
+        st.subheader("RSI, MACD et Oscillateur Stochastique")
+        st.write("Ces graphiques illustrent les tendances de l'indice RSI, le MACD et l'oscillateur stochastique.")
         fig, ax = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
         # RSI
         ax[0].plot(data['Date'], data['RSI'], label='RSI', color='green')
-        ax[0].axhline(70, color='red', linestyle='--', label='Overbought')
-        ax[0].axhline(30, color='blue', linestyle='--', label='Oversold')
+        ax[0].axhline(70, color='red', linestyle='--', label='Surachat')
+        ax[0].axhline(30, color='blue', linestyle='--', label='Survente')
         ax[0].set_title("RSI")
         ax[0].legend()
 
         # MACD
         ax[1].plot(data['Date'], data['MACD'], label='MACD', color='purple')
-        ax[1].plot(data['Date'], data['Signal_Line'], label='Signal Line', color='orange')
+        ax[1].plot(data['Date'], data['Signal_Line'], label='Ligne de Signal', color='orange')
         ax[1].set_title("MACD")
         ax[1].legend()
 
         # Stochastic Oscillator
         ax[2].plot(data['Date'], data['%K'], label='%K', color='cyan')
         ax[2].plot(data['Date'], data['%D'], label='%D', color='magenta')
-        ax[2].set_title("Stochastic Oscillator")
+        ax[2].set_title("Oscillateur Stochastique")
         ax[2].legend()
 
         st.pyplot(fig)
 
         # Evaluate investment opportunity
-        st.subheader("Investment Opportunity Analysis")
+        st.subheader("Analyse des Opportunités d'Investissement")
+        st.write("Cette section évalue les opportunités d'investissement en fonction des indicateurs actuels.")
         signals = evaluate_investment(data)
         for signal in signals:
             st.write(f"- {signal}")
 
-st.sidebar.title("About")
-st.sidebar.info("This tool analyzes cryptocurrency data using multiple advanced indicators to detect potential market trends and evaluate investment opportunities.")
+st.sidebar.title("À propos")
+st.sidebar.info("Cet outil analyse les données des cryptomonnaies en utilisant des indicateurs avancés pour détecter les tendances du marché et évaluer les opportunités d'investissement.")
